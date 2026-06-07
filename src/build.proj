@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.Build.Traversal">
+  <ItemGroup>
+    <ProjectReference Include="Irrigation.Shared/Irrigation.Shared.csproj" />
+    <ProjectReference Include="Irrigation.Core/Irrigation.Core.csproj" />
+    <ProjectReference Include="Irrigation.Api/Irrigation.Api.csproj" />
+    <ProjectReference Include="Irrigation.App/Irrigation.App.csproj" />
+    <PackageReference Include="Microsoft.Build.Traversal" Version="3.0.23" />
+  </ItemGroup>
+</Project>

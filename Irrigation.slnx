@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Irrigation.Api/Irrigation.Api.csproj" />
+    <Project Path="src/Irrigation.App/Irrigation.App.csproj" />
+    <Project Path="src/Irrigation.Core/Irrigation.Core.csproj" />
+    <Project Path="src/Irrigation.Shared/Irrigation.Shared.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Irrigation.Tests/Irrigation.Tests.csproj" />
+  </Folder>
+</Solution>

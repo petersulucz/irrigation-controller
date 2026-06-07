@@ -1,0 +1,285 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Irrigation.App.Views.MainWindow"
+        Width="800"
+        Height="480"
+        Title="Irrigation"
+        Background="#F2F6FB">
+  <Window.Styles>
+    <Style Selector="TextBlock">
+      <Setter Property="Foreground" Value="#102A43" />
+    </Style>
+    <Style Selector="TextBlock.title">
+      <Setter Property="FontSize" Value="26" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#0A2540" />
+    </Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="#5F7287" />
+    </Style>
+    <Style Selector="TextBlock.onAccent">
+      <Setter Property="Foreground" Value="#FFFFFF" />
+    </Style>
+    <Style Selector="Button.nav">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="Height" Value="52" />
+      <Setter Property="Padding" Value="16,0" />
+      <Setter Property="Background" Value="#123C69" />
+      <Setter Property="Foreground" Value="#FFFFFF" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.nav:pointerover">
+      <Setter Property="Background" Value="#1B5C99" />
+    </Style>
+    <Style Selector="Button.primary">
+      <Setter Property="Height" Value="54" />
+      <Setter Property="MinWidth" Value="132" />
+      <Setter Property="Background" Value="#1262D6" />
+      <Setter Property="Foreground" Value="#FFFFFF" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.danger">
+      <Setter Property="Height" Value="54" />
+      <Setter Property="MinWidth" Value="132" />
+      <Setter Property="Background" Value="#B42318" />
+      <Setter Property="Foreground" Value="#FFFFFF" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.secondary">
+      <Setter Property="Height" Value="44" />
+      <Setter Property="MinWidth" Value="112" />
+      <Setter Property="Background" Value="#E6F0FF" />
+      <Setter Property="Foreground" Value="#0B4DB3" />
+      <Setter Property="BorderBrush" Value="#B8D2F7" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.zone">
+      <Setter Property="Height" Value="154" />
+      <Setter Property="MinHeight" Value="154" />
+      <Setter Property="MaxHeight" Value="154" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Stretch" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="Padding" Value="16" />
+      <Setter Property="Background" Value="#FFFFFF" />
+      <Setter Property="Foreground" Value="#102A43" />
+      <Setter Property="BorderBrush" Value="#B8CBE4" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Button.zone.running">
+      <Setter Property="Background" Value="#087F5B" />
+      <Setter Property="Foreground" Value="#FFFFFF" />
+      <Setter Property="BorderBrush" Value="#065F46" />
+    </Style>
+    <Style Selector="Button.zone.queued">
+      <Setter Property="Background" Value="#DCEBFF" />
+      <Setter Property="Foreground" Value="#0A2540" />
+      <Setter Property="BorderBrush" Value="#1769E0" />
+    </Style>
+    <Style Selector="Button.zone.disabled">
+      <Setter Property="Background" Value="#E7ECF3" />
+      <Setter Property="Foreground" Value="#5F7287" />
+    </Style>
+    <Style Selector="Border.panel">
+      <Setter Property="Background" Value="#FFFFFF" />
+      <Setter Property="BorderBrush" Value="#C8D7EA" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="Padding" Value="14" />
+    </Style>
+    <Style Selector="Border.surface">
+      <Setter Property="Background" Value="#FFFFFF" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="Padding" Value="16" />
+    </Style>
+  </Window.Styles>
+
+  <Grid>
+    <Grid IsVisible="{Binding IsStartingVisible}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" Width="420">
+        <TextBlock Text="Starting irrigation engine" FontSize="30" FontWeight="SemiBold" Foreground="#0B1F44" TextAlignment="Center" />
+        <TextBlock Text="Waiting for the backend controller to come online." FontSize="18" Foreground="#52677F" TextAlignment="Center" TextWrapping="Wrap" />
+        <ProgressBar IsIndeterminate="True" Height="8" />
+      </StackPanel>
+    </Grid>
+
+    <Grid IsVisible="{Binding IsShellVisible}" ColumnDefinitions="184,*">
+      <Border Background="#0A2540" Padding="14">
+        <Grid RowDefinitions="Auto,*">
+          <StackPanel Spacing="3" Margin="2,4,2,0">
+            <TextBlock Text="Irrigation" FontSize="22" FontWeight="SemiBold" Foreground="#FFFFFF" />
+            <TextBlock Text="Controller" FontSize="13" Foreground="#C5D9F2" />
+          </StackPanel>
+          <StackPanel Grid.Row="1" Spacing="10" Margin="0,28,0,0">
+            <Button Classes="nav" Content="Home" Click="HomeClicked" />
+            <Button Classes="nav" Content="Settings" Click="SettingsClicked" />
+            <Button Classes="nav" Content="Wi-Fi" Click="WifiClicked" />
+            <Button Classes="nav" Content="Metrics" Click="MetricsClicked" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="18" RowSpacing="12">
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+          <Border Classes="surface">
+            <TextBlock Text="{Binding StatusText}" FontSize="15" Foreground="#49657F" />
+          </Border>
+          <Button Grid.Column="1" Classes="primary" Content="Run All" Command="{Binding RunAllCommand}" />
+          <Button Grid.Column="2" Classes="danger" Content="Stop All" Command="{Binding StopAllCommand}" />
+        </Grid>
+
+        <Grid Grid.Row="1">
+          <Grid IsVisible="{Binding IsHomeVisible}">
+            <ItemsControl ItemsSource="{Binding Zones}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <Grid RowDefinitions="*,*" ColumnDefinitions="*,*" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.Styles>
+                <Style Selector="ContentPresenter">
+                  <Setter Property="Margin" Value="5" />
+                </Style>
+                <Style Selector="ContentPresenter:nth-child(1)">
+                  <Setter Property="Grid.Row" Value="0" />
+                  <Setter Property="Grid.Column" Value="0" />
+                </Style>
+                <Style Selector="ContentPresenter:nth-child(2)">
+                  <Setter Property="Grid.Row" Value="0" />
+                  <Setter Property="Grid.Column" Value="1" />
+                </Style>
+                <Style Selector="ContentPresenter:nth-child(3)">
+                  <Setter Property="Grid.Row" Value="1" />
+                  <Setter Property="Grid.Column" Value="0" />
+                </Style>
+                <Style Selector="ContentPresenter:nth-child(4)">
+                  <Setter Property="Grid.Row" Value="1" />
+                  <Setter Property="Grid.Column" Value="1" />
+                </Style>
+              </ItemsControl.Styles>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Button Classes="zone"
+                          Classes.running="{Binding IsRunning}"
+                          Classes.queued="{Binding IsQueued}"
+                          Classes.disabled="{Binding IsDisabled}"
+                          Classes.error="{Binding IsError}"
+                          IsEnabled="{Binding CanRun}"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Click="RunZoneClicked">
+                    <Grid RowDefinitions="*,Auto,Auto">
+                      <TextBlock Text="{Binding Name}" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" Foreground="{Binding $parent[Button].Foreground}" />
+                      <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{Binding StateText}" FontSize="16" Foreground="{Binding $parent[Button].Foreground}" />
+                        <TextBlock Grid.Column="1" Text="{Binding Duration}" FontSize="16" Foreground="{Binding $parent[Button].Foreground}" />
+                      </Grid>
+                      <TextBlock Grid.Row="2" Text="{Binding LastRunText}" FontSize="13" Opacity="0.82" Foreground="{Binding $parent[Button].Foreground}" />
+                    </Grid>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Grid>
+
+          <ScrollViewer IsVisible="{Binding IsSettingsVisible}">
+            <ItemsControl ItemsSource="{Binding ZoneEditors}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Classes="panel" Margin="0,0,0,10">
+                    <Grid ColumnDefinitions="92,*,112,98,112" ColumnSpacing="10" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding ZoneLabel}" VerticalAlignment="Center" Foreground="#49657F" FontWeight="SemiBold" />
+                      <TextBox Grid.Column="1" Text="{Binding Name}" PlaceholderText="Zone name" />
+                      <NumericUpDown Grid.Column="2" Value="{Binding DefaultMinutes}" Minimum="1" Maximum="60" FormatString="0 min" />
+                      <CheckBox Grid.Column="3" Content="Enabled" IsChecked="{Binding Enabled}" VerticalAlignment="Center" />
+                      <Button Grid.Column="4" Classes="secondary" Content="Save" Click="SaveZoneClicked" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+
+          <Grid IsVisible="{Binding IsWifiVisible}" RowDefinitions="Auto,Auto,*" RowSpacing="12">
+            <Border Classes="panel">
+              <TextBlock Text="{Binding WifiStatusText}" FontSize="15" Foreground="#475467" TextWrapping="Wrap" />
+            </Border>
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+              <TextBox PasswordChar="*" PlaceholderText="Wi-Fi password" Text="{Binding WifiPassphrase}" />
+              <Button Grid.Column="1" Classes="primary" Content="Scan" Command="{Binding ScanWifiCommand}" />
+            </Grid>
+            <ScrollViewer Grid.Row="2">
+              <ItemsControl ItemsSource="{Binding WifiNetworks}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Border Classes="panel" Margin="0,0,0,10">
+                      <Grid ColumnDefinitions="*,90,110" ColumnSpacing="10">
+                        <TextBlock Text="{Binding Ssid}" FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="1" Text="{Binding Signal}" VerticalAlignment="Center" Foreground="#52677F" />
+                        <Button Grid.Column="2" Classes="secondary" Content="Connect" Click="ConnectWifiClicked" />
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </Grid>
+
+          <Grid IsVisible="{Binding IsMetricsVisible}" ColumnDefinitions="*,*" ColumnSpacing="12">
+            <Border Classes="panel">
+              <Grid RowDefinitions="Auto,*" RowSpacing="8">
+                <TextBlock Text="Run History" FontSize="18" FontWeight="SemiBold" Foreground="#0B1F44" />
+                <ScrollViewer Grid.Row="1">
+                  <ItemsControl ItemsSource="{Binding RunHistory}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Grid ColumnDefinitions="*,90,80" Margin="0,0,0,10">
+                          <StackPanel>
+                            <TextBlock Text="{Binding ZoneName}" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding StartedAt}" Classes="muted" FontSize="12" />
+                          </StackPanel>
+                          <TextBlock Grid.Column="1" Text="{Binding Duration}" VerticalAlignment="Center" />
+                          <TextBlock Grid.Column="2" Text="{Binding Outcome}" VerticalAlignment="Center" />
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </Grid>
+            </Border>
+            <Border Grid.Column="1" Classes="panel">
+              <Grid RowDefinitions="Auto,*" RowSpacing="8">
+                <TextBlock Text="Telemetry" FontSize="18" FontWeight="SemiBold" Foreground="#0B1F44" />
+                <ScrollViewer Grid.Row="1">
+                  <ItemsControl ItemsSource="{Binding Telemetry}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <StackPanel Margin="0,0,0,10">
+                          <TextBlock Text="{Binding EventType}" FontWeight="SemiBold" />
+                          <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+                          <TextBlock Text="{Binding Timestamp}" Classes="muted" FontSize="12" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </Grid>
+            </Border>
+          </Grid>
+        </Grid>
+      </Grid>
+    </Grid>
+  </Grid>
+</Window>
