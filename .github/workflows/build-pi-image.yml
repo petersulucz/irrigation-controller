@@ -12,24 +12,18 @@ permissions:
 jobs:
   build-pi-image:
     name: Build NixOS Raspberry Pi image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 180
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Enable ARM emulation
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-
       - name: Install Nix
         uses: cachix/install-nix-action@v31
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
-            extra-platforms = aarch64-linux
             accept-flake-config = true
 
       - name: Generate NuGet dependency lock

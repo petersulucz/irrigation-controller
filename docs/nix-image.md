@@ -11,6 +11,8 @@ nix build .#packages.aarch64-linux.images.pi4
 The image output will be under `result/sd-image/`.
 
 The same image is built in GitHub Actions by `.github/workflows/build-pi-image.yml`.
+The workflow uses GitHub's native `ubuntu-24.04-arm` ARM64 hosted runner, so the Pi
+image build does not rely on QEMU emulation.
 Push a version tag to create a release with the compressed Raspberry Pi image attached:
 
 ```bash
