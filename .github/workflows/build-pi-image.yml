@@ -1,0 +1,76 @@
+name: Build Raspberry Pi Image
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-pi-image:
+    name: Build NixOS Raspberry Pi image
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Enable ARM emulation
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            extra-platforms = aarch64-linux
+            accept-flake-config = true
+
+      - name: Generate NuGet dependency lock
+        run: nix develop --command bash ./nix-fetch-deps.sh
+
+      - name: Build Raspberry Pi image
+        run: nix build .#nixosConfigurations.pi4.config.system.build.sdImage --print-build-logs
+
+      - name: Package image asset
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p dist
+          image_path="$(find -L result/sd-image -maxdepth 1 -type f -name '*.img' | head -n 1)"
+          if [[ -z "${image_path}" ]]; then
+            echo "No .img file found under result/sd-image" >&2
+            exit 1
+          fi
+
+          version="${GITHUB_REF_NAME:-manual}"
+          image_name="irrigation-${version}-pi4-aarch64.img"
+          cp "${image_path}" "dist/${image_name}"
+
+          gzip -9 "dist/${image_name}"
+          sha256sum "dist/${image_name}.gz" > "dist/${image_name}.gz.sha256"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: irrigation-pi4-image
+          path: |
+            dist/*.img.gz
+            dist/*.sha256
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/*.img.gz
+            dist/*.sha256
