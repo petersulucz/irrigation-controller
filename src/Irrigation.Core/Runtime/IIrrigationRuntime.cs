@@ -5,6 +5,8 @@ namespace Irrigation.Core.Runtime;
 
 public interface IIrrigationRuntime
 {
+    Task Completion { get; }
+
     Task InitializeAsync(CancellationToken cancellationToken);
 
     Task RunZoneAsync(Guid zoneId, CancellationToken cancellationToken);

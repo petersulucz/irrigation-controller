@@ -9,13 +9,18 @@
   nixpkgs.hostPlatform = "aarch64-linux";
 
   boot = {
-    kernelPackages = pkgs.linuxKernel.packages.linux_rpi4;
+    # The raspberry-pi-4 nixos-hardware module owns the kernel selection.
     initrd.availableKernelModules = [ "xhci_pci" "usbhid" "usb_storage" ];
     loader = {
       grub.enable = false;
       generic-extlinux-compatible.enable = true;
       generic-extlinux-compatible.configurationLimit = 2;
     };
+  };
+
+  hardware.raspberry-pi = {
+    firmware.uboot.enable = true;
+    configtxt.settings.all.disable_splash = true;
   };
 
   sdImage = {

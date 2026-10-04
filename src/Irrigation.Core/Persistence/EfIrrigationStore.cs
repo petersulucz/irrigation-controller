@@ -33,6 +33,37 @@ public sealed class EfIrrigationStore(IDbContextFactory<IrrigationDbContext> dbF
         }
 
         await db.SaveChangesAsync(cancellationToken);
+
+        // A restart never resumes watering. Close history left open by a crash.
+        var interrupted = await db.RunHistory.Where(r => r.CompletedAt == null).ToListAsync(cancellationToken);
+        foreach (var run in interrupted)
+        {
+            run.CompletedAt = DateTimeOffset.UtcNow;
+            run.Outcome = "Interrupted";
+            // The actual relay shutoff time cannot be reconstructed after a crash.
+            run.ActualDuration = null;
+        }
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task MaintainAsync(DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var telemetryCutoff = now.AddDays(-30).ToString("O");
+        var historyCutoff = now.AddDays(-365).ToString("O");
+        // SQLite cannot order DateTimeOffset through EF. julianday handles both
+        // EF's stored offset strings and the ISO timestamps used for cutoffs.
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            DELETE FROM TelemetryEvents WHERE julianday(Timestamp) < julianday({telemetryCutoff});
+            DELETE FROM TelemetryEvents WHERE EventId IN (
+                SELECT EventId FROM TelemetryEvents ORDER BY julianday(Timestamp) DESC, rowid DESC LIMIT -1 OFFSET 10000);
+            DELETE FROM RunHistory WHERE CompletedAt IS NOT NULL AND julianday(StartedAt) < julianday({historyCutoff});
+            DELETE FROM RunHistory WHERE RunId IN (
+                SELECT RunId FROM RunHistory WHERE CompletedAt IS NOT NULL
+                ORDER BY julianday(StartedAt) DESC, rowid DESC LIMIT -1 OFFSET 10000);
+            """, cancellationToken);
+        // Reuse freed pages rather than rewriting the entire SD-card database.
+        await db.Database.ExecuteSqlRawAsync("PRAGMA wal_checkpoint(TRUNCATE);", cancellationToken);
     }
 
     public async Task<IReadOnlyList<IrrigationZone>> GetZonesAsync(CancellationToken cancellationToken)
@@ -111,7 +142,10 @@ public sealed class EfIrrigationStore(IDbContextFactory<IrrigationDbContext> dbF
     public async Task<IReadOnlyList<RunHistoryDto>> GetRunHistoryAsync(int count, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var rows = await db.RunHistory.ToListAsync(cancellationToken);
+        var limit = Math.Clamp(count, 1, 500);
+        var rows = await db.RunHistory.FromSqlInterpolated($"""
+            SELECT * FROM RunHistory ORDER BY julianday(StartedAt) DESC, rowid DESC LIMIT {limit}
+            """).AsNoTracking().ToListAsync(cancellationToken);
         return rows
             .OrderByDescending(r => r.StartedAt)
             .Take(Math.Clamp(count, 1, 500))
@@ -121,16 +155,24 @@ public sealed class EfIrrigationStore(IDbContextFactory<IrrigationDbContext> dbF
 
     public async Task<IReadOnlyDictionary<Guid, RunHistoryDto>> GetLastRunsAsync(CancellationToken cancellationToken)
     {
-        var history = await this.GetRunHistoryAsync(500, cancellationToken);
-        return history
-            .GroupBy(r => r.ZoneId)
-            .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.StartedAt).First());
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var history = await db.RunHistory.FromSqlRaw("""
+            SELECT * FROM RunHistory WHERE RunId IN (
+                SELECT RunId FROM (
+                    SELECT RunId, ROW_NUMBER() OVER (
+                        PARTITION BY ZoneId ORDER BY julianday(StartedAt) DESC, rowid DESC) AS Position
+                    FROM RunHistory) WHERE Position = 1)
+            """).AsNoTracking().ToListAsync(cancellationToken);
+        return history.ToDictionary(r => r.ZoneId, ToDto);
     }
 
     public async Task<IReadOnlyList<TelemetryEventDto>> GetTelemetryAsync(int count, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var rows = await db.TelemetryEvents.ToListAsync(cancellationToken);
+        var limit = Math.Clamp(count, 1, 500);
+        var rows = await db.TelemetryEvents.FromSqlInterpolated($"""
+            SELECT * FROM TelemetryEvents ORDER BY julianday(Timestamp) DESC, rowid DESC LIMIT {limit}
+            """).AsNoTracking().ToListAsync(cancellationToken);
         return rows
             .OrderByDescending(e => e.Timestamp)
             .Take(Math.Clamp(count, 1, 500))

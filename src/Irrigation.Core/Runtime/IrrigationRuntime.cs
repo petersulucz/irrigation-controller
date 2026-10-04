@@ -15,7 +15,8 @@ public sealed class IrrigationRuntime : IIrrigationRuntime, IAsyncDisposable
     private readonly IRelayController relayController;
     private readonly IIrrigationStore store;
     private readonly IrrigationOptions options;
-    private readonly SemaphoreSlim signal = new(0);
+    private readonly SemaphoreSlim signal = new(0, 1);
+    private readonly SemaphoreSlim controlGate = new(1, 1);
     private readonly CancellationTokenSource disposeCts = new();
     private Task? worker;
 
@@ -25,6 +26,8 @@ public sealed class IrrigationRuntime : IIrrigationRuntime, IAsyncDisposable
     private DateTimeOffset? activeStartedAt;
     private DateTimeOffset? activeEndsAt;
     private List<QueueItem> pending = [];
+
+    public Task Completion => this.worker ?? Task.CompletedTask;
 
     public IrrigationRuntime(
         IOptions<IrrigationOptions> options,
@@ -78,7 +81,10 @@ public sealed class IrrigationRuntime : IIrrigationRuntime, IAsyncDisposable
         await this.ReplaceQueueAsync(items, "manual.run-all", cancellationToken);
     }
 
-    public async Task StopAllAsync(CancellationToken cancellationToken)
+    public Task StopAllAsync(CancellationToken cancellationToken) =>
+        this.WithControlGateAsync(() => this.StopAllCoreAsync(cancellationToken), cancellationToken);
+
+    private async Task StopAllCoreAsync(CancellationToken cancellationToken)
     {
         List<IrrigationZone> zonesToStop;
         Guid? runToStop;
@@ -197,10 +203,14 @@ public sealed class IrrigationRuntime : IIrrigationRuntime, IAsyncDisposable
         }
 
         this.signal.Dispose();
+        this.controlGate.Dispose();
         this.disposeCts.Dispose();
     }
 
-    private async Task ReplaceQueueAsync(IReadOnlyList<QueueItem> items, string eventType, CancellationToken cancellationToken)
+    private Task ReplaceQueueAsync(IReadOnlyList<QueueItem> items, string eventType, CancellationToken cancellationToken) =>
+        this.WithControlGateAsync(() => this.ReplaceQueueCoreAsync(items, eventType, cancellationToken), cancellationToken);
+
+    private async Task ReplaceQueueCoreAsync(IReadOnlyList<QueueItem> items, string eventType, CancellationToken cancellationToken)
     {
         List<IrrigationZone> zonesToStop;
         Guid? runToReplace;
@@ -261,7 +271,7 @@ public sealed class IrrigationRuntime : IIrrigationRuntime, IAsyncDisposable
                 delay = this.activeEndsAt is null
                     ? Timeout.InfiniteTimeSpan
                     : this.activeEndsAt.Value - DateTimeOffset.UtcNow;
-                if (delay < TimeSpan.Zero)
+                if (this.activeEndsAt is not null && delay < TimeSpan.Zero)
                 {
                     delay = TimeSpan.Zero;
                 }
@@ -275,10 +285,11 @@ public sealed class IrrigationRuntime : IIrrigationRuntime, IAsyncDisposable
                 }
                 else
                 {
-                    await Task.WhenAny(Task.Delay(delay, cancellationToken), this.signal.WaitAsync(cancellationToken));
+                    // A timed wait leaves no abandoned semaphore waiter behind.
+                    await this.signal.WaitAsync(delay, cancellationToken);
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 break;
             }
@@ -287,7 +298,10 @@ public sealed class IrrigationRuntime : IIrrigationRuntime, IAsyncDisposable
         }
     }
 
-    private async Task AdvanceIfExpiredAsync(CancellationToken cancellationToken)
+    private Task AdvanceIfExpiredAsync(CancellationToken cancellationToken) =>
+        this.WithControlGateAsync(() => this.AdvanceIfExpiredCoreAsync(cancellationToken), cancellationToken);
+
+    private async Task AdvanceIfExpiredCoreAsync(CancellationToken cancellationToken)
     {
         QueueItem? itemToStop = null;
         QueueItem? itemToStart = null;
@@ -377,6 +391,13 @@ public sealed class IrrigationRuntime : IIrrigationRuntime, IAsyncDisposable
         catch (SemaphoreFullException)
         {
         }
+    }
+
+    private async Task WithControlGateAsync(Func<Task> action, CancellationToken cancellationToken)
+    {
+        await this.controlGate.WaitAsync(cancellationToken);
+        try { await action(); }
+        finally { this.controlGate.Release(); }
     }
 
     private static List<ZoneOptions> DefaultZones()

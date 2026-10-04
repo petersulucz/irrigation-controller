@@ -22,9 +22,11 @@ builder.Services.AddSingleton<IRelayController>(services =>
         ? ActivatorUtilities.CreateInstance<GpioRelayController>(services)
         : ActivatorUtilities.CreateInstance<SimulatedRelayController>(services);
 });
-builder.Services.AddSingleton<IIrrigationStore, EfIrrigationStore>();
+builder.Services.AddSingleton<EfIrrigationStore>();
+builder.Services.AddSingleton<IIrrigationStore>(services => services.GetRequiredService<EfIrrigationStore>());
 builder.Services.AddSingleton<IIrrigationRuntime, IrrigationRuntime>();
 builder.Services.AddHostedService<IrrigationStartupService>();
+builder.Services.AddHostedService<IrrigationMaintenanceService>();
 
 var app = builder.Build();
 
@@ -130,9 +132,23 @@ internal static class IrrigationEndpointConventions
     }
 }
 
-internal sealed class IrrigationStartupService(IIrrigationRuntime runtime) : IHostedService
+internal sealed class IrrigationStartupService(IIrrigationRuntime runtime) : BackgroundService
 {
-    public Task StartAsync(CancellationToken cancellationToken) => runtime.InitializeAsync(cancellationToken);
+    public override async Task StartAsync(CancellationToken cancellationToken)
+    {
+        await runtime.InitializeAsync(cancellationToken);
+        await base.StartAsync(cancellationToken);
+    }
 
-    public Task StopAsync(CancellationToken cancellationToken) => runtime.StopAllAsync(cancellationToken);
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        // A failed watering worker must stop the host so systemd can recover it.
+        await runtime.Completion.WaitAsync(stoppingToken);
+    }
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        try { await runtime.StopAllAsync(cancellationToken); }
+        finally { await base.StopAsync(cancellationToken); }
+    }
 }
